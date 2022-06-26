@@ -1,24 +1,28 @@
 package com.example.furniturerotanbe.controllers;
 
 
+import com.example.furniturerotanbe.exception.TokenRefreshException;
 import com.example.furniturerotanbe.models.ERole;
+import com.example.furniturerotanbe.models.RefreshToken;
 import com.example.furniturerotanbe.models.Role;
 import com.example.furniturerotanbe.models.User;
+import com.example.furniturerotanbe.payload.request.LogOutRequest;
 import com.example.furniturerotanbe.payload.request.LoginRequest;
 import com.example.furniturerotanbe.payload.request.SignupRequest;
+import com.example.furniturerotanbe.payload.request.TokenRefreshRequest;
 import com.example.furniturerotanbe.payload.response.JwtResponse;
 import com.example.furniturerotanbe.payload.response.MessageResponse;
+import com.example.furniturerotanbe.payload.response.TokenRefreshResponse;
 import com.example.furniturerotanbe.repository.RoleRepository;
 import com.example.furniturerotanbe.repository.UserRepository;
 import com.example.furniturerotanbe.security.jwt.JwtUtils;
+import com.example.furniturerotanbe.security.services.RefreshTokenService;
 import com.example.furniturerotanbe.security.services.UserDetailsImpl;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -33,20 +37,32 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    @Autowired
+    final
+    RefreshTokenService refreshTokenService;
+
+    final
     AuthenticationManager authenticationManager;
 
-    @Autowired
+    final
     UserRepository userRepository;
 
-    @Autowired
+    final
     RoleRepository roleRepository;
 
-    @Autowired
+    final
     PasswordEncoder encoder;
 
-    @Autowired
+    final
     JwtUtils jwtUtils;
+
+    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder encoder, JwtUtils jwtUtils, RefreshTokenService refreshTokenService) {
+        this.authenticationManager = authenticationManager;
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.encoder = encoder;
+        this.jwtUtils = jwtUtils;
+        this.refreshTokenService = refreshTokenService;
+    }
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -60,19 +76,21 @@ public class AuthController {
 
         String jwt = jwtUtils.generateJwtToken(authentication);
 
-
-        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
-
         List<String> roles = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
+                .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getId());
 
-        return ResponseEntity.ok(new JwtResponse(jwt,
+
+        return ResponseEntity.ok(new JwtResponse(jwt,refreshToken.getToken(),
                 userDetails.getId(),
                 userDetails.getUsername(),
                 userDetails.getEmail(),
-                roles));
+                roles,
+                userDetails.getNama(),
+                userDetails.getTelepon()
+                ));
     }
 
     @PostMapping("/signup")
@@ -86,7 +104,10 @@ public class AuthController {
         }
         User user = new User(signUpRequest.getUsername(),
                 signUpRequest.getEmail(),
-                encoder.encode(signUpRequest.getPassword()));
+                encoder.encode(signUpRequest.getPassword()),
+                signUpRequest.getNama(),
+                signUpRequest.getTelepon()
+                );
 
         Set<String> strRoles = signUpRequest.getRole();
         Set<Role> roles = new HashSet<>();
@@ -124,10 +145,24 @@ public class AuthController {
         return ResponseEntity.ok(new MessageResponse("Pendaftaran berhasil"));
     }
 
-    @PostMapping("/signout")
-    public ResponseEntity<?> logoutUser() {
-        ResponseCookie cookie = jwtUtils.getCleanJwtCookie();
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(new MessageResponse("Anda telah keluar"));
+    @PostMapping("/refreshtoken")
+    public ResponseEntity<?> refreshtoken(@Valid @RequestBody TokenRefreshRequest request) {
+        String requestRefreshToken = request.getRefreshToken();
+
+        return refreshTokenService.findByToken(requestRefreshToken)
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshToken::getUser)
+                .map(user -> {
+                    String token = jwtUtils.generateTokenFromUsername(user.getUsername());
+                    return ResponseEntity.ok(new TokenRefreshResponse(token, requestRefreshToken));
+                })
+                .orElseThrow(() -> new TokenRefreshException(requestRefreshToken,
+                        "Refresh token is not in database!"));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logoutUser(@Valid @RequestBody LogOutRequest logOutRequest) {
+        refreshTokenService.deleteByUserId(logOutRequest.getUserId());
+        return ResponseEntity.ok(new MessageResponse("Berhasil Keluar"));
     }
 }

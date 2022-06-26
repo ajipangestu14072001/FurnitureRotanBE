@@ -19,13 +19,13 @@ import java.util.Date;
 public class JwtUtils {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
-    @Value("${edocore.app.jwtSecret}")
+    @Value("${furniturerotanbe.app.jwtSecret}")
     private String jwtSecret;
 
-    @Value("${edocore.app.jwtExpirationMs}")
+    @Value("${furniturerotanbe.app.jwtExpirationMs}")
     private int jwtExpirationMs;
 
-    @Value("${edocore.app.jwtCookieName}")
+    @Value("${furniturerotanbe.app.jwtCookieName}")
     private String jwtCookie;
 
 
