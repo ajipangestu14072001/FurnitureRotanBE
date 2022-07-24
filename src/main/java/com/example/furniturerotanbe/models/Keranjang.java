@@ -15,4 +15,10 @@ public class Keranjang {
     private Integer id;
     private String idBarang;
     private String idUsers;
+    private String namaBarang;
+    private Integer harga;
+    private String deskripsi;
+    private String pathPhoto;
+    private String kategori;
+    private String lokasi;
 }

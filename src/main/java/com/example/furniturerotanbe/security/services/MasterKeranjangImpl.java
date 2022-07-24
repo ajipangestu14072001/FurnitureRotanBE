@@ -17,6 +17,11 @@ public class MasterKeranjangImpl implements MasterKeranjangService {
     public Keranjang Post(Keranjang params) {
         params.setIdBarang(params.getIdBarang());
         params.setIdUsers(params.getIdUsers());
+        params.setNamaBarang(params.getNamaBarang());
+        params.setDeskripsi(params.getDeskripsi());
+        params.setHarga(params.getHarga());
+        params.setPathPhoto(params.getPathPhoto());
+        params.setKategori(params.getKategori());
         return masterKeranjangRepository.save(params);
     }
 
