@@ -28,4 +28,10 @@ public class MasterTransaksiImpl implements MasterTransaksiService {
         params.setStatus(params.getStatus());
         return masterTransaksiRepository.save(params);
     }
+
+    @Override
+    public MasterTransaksi Get(String idUser) {
+        return masterTransaksiRepository.findById(idUser).orElse(null);
+
+    }
 }
