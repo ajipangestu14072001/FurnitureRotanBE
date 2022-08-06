@@ -2,14 +2,26 @@ package com.example.furniturerotanbe.controllers;
 
 
 import com.example.furniturerotanbe.models.MasterData;
+import com.example.furniturerotanbe.models.MasterTransaksi;
 import com.example.furniturerotanbe.payload.response.ResponseHandler;
+import com.example.furniturerotanbe.pdf.BarangMasukReport;
+import com.example.furniturerotanbe.pdf.TransaksiExport;
 import com.example.furniturerotanbe.repository.MasterBarangService;
 import com.example.furniturerotanbe.repository.MasterProductRepository;
+import com.example.furniturerotanbe.security.services.MasterBarangImpl;
+import com.example.furniturerotanbe.security.services.MasterTransaksiImpl;
+import com.lowagie.text.DocumentException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -21,7 +33,8 @@ public class MasterProductController {
 
     final MasterBarangService masterBarangService;
     private final ResponseHandler responseHandler = new ResponseHandler();
-
+    @Autowired
+    MasterBarangImpl masterBarang;
 
     public MasterProductController(MasterBarangService masterBarangService, MasterProductRepository masterProductRepository) {
         this.masterBarangService = masterBarangService;
@@ -99,5 +112,22 @@ public class MasterProductController {
         } catch (Exception e) {
             return responseHandler.generateResponse(e.getMessage(), HttpStatus.MULTI_STATUS, "[]");
         }
+    }
+
+    @GetMapping("/barang/export/pdf")
+    public void exportToPDF(HttpServletResponse response) throws DocumentException, IOException {
+        response.setContentType("application/pdf");
+        DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
+        String currentDateTime = dateFormatter.format(new Date());
+
+        String headerKey = "Content-Disposition";
+        String headerValue = "attachment; filename=transaksi_" + currentDateTime + ".pdf";
+        response.setHeader(headerKey, headerValue);
+
+        List<MasterData> listUsers = masterBarang.listAll();
+
+        BarangMasukReport exporter = new BarangMasukReport(listUsers);
+        exporter.export(response);
+
     }
 }

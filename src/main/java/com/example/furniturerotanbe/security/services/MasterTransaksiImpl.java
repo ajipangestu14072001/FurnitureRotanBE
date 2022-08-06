@@ -5,6 +5,7 @@ import com.example.furniturerotanbe.repository.MasterTransaksiRepository;
 import com.example.furniturerotanbe.repository.MasterTransaksiService;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -33,5 +34,9 @@ public class MasterTransaksiImpl implements MasterTransaksiService {
     public MasterTransaksi Get(String idUser) {
         return masterTransaksiRepository.findById(idUser).orElse(null);
 
+    }
+
+    public List<MasterTransaksi> listAll() {
+        return masterTransaksiRepository.findAll();
     }
 }

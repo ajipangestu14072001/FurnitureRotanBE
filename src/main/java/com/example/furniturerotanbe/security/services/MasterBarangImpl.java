@@ -1,9 +1,12 @@
 package com.example.furniturerotanbe.security.services;
 
 import com.example.furniturerotanbe.models.MasterData;
+import com.example.furniturerotanbe.models.MasterTransaksi;
 import com.example.furniturerotanbe.repository.MasterBarangService;
 import com.example.furniturerotanbe.repository.MasterProductRepository;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -47,5 +50,9 @@ public class MasterBarangImpl implements MasterBarangService{
     public String Delete(String id) {
        masterProductRepository.deleteById(id);
        return "Barang ("+id+")"+ " Telah di Hapus";
+    }
+
+    public List<MasterData> listAll() {
+        return masterProductRepository.findAll();
     }
 }
